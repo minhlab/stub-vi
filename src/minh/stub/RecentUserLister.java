@@ -17,7 +17,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 
-public class StubLister {
+public class RecentUserLister {
 
     public static void main(String[] args) throws IOException {
         Properties prop = new Properties();
