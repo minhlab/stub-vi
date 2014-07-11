@@ -60,10 +60,10 @@ public class RecentchangeUsers extends TitleQuery<String> {
   private final int[] namespaces;
 
   /**
-   * Collection that will contain the result (titles of articles linking to the target) after performing the action has
+   * Collection that will contain the result (users of articles linking to the target) after performing the action has
    * finished.
    */
-  private final Collection<String> titleCollection = Lists.newArrayList();
+  private final Collection<String> userCollection = Lists.newArrayList();
   private final boolean uniqChanges;
 
   private DateTime endDateTime;
@@ -80,16 +80,16 @@ public class RecentchangeUsers extends TitleQuery<String> {
     @Override
     public String processAllReturningText(final String s) {
 
-      titleCollection.clear();
+      userCollection.clear();
       parseArticleTitles(s);
 
       if (uniqChanges) {
         Set<String> set = Sets.newHashSet();
-        set.addAll(titleCollection);
-        titleCollection.clear();
-        titleCollection.addAll(set);
+        set.addAll(userCollection);
+        userCollection.clear();
+        userCollection.addAll(set);
       }
-      titleIterator = titleCollection.iterator();
+      titleIterator = userCollection.iterator();
 
       return "";
     }
@@ -180,7 +180,7 @@ public class RecentchangeUsers extends TitleQuery<String> {
   protected Collection<String> parseArticleTitles(String s) {
     Element root = getRootElement(s);
     findContent(root);
-    return titleCollection;
+    return userCollection;
 
   }
 
@@ -195,7 +195,7 @@ public class RecentchangeUsers extends TitleQuery<String> {
         DateTime dateTime = DateTime.parse(timestamp);
         
         if (find < limit && dateTime.isAfter(endDateTime)) {
-          titleCollection.add(MediaWiki.decode(element.getAttributeValue("user")));
+          userCollection.add(MediaWiki.decode(element.getAttributeValue("user")));
         }
 
         if (dateTime.isAfter(endDateTime)) {

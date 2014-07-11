@@ -1,9 +1,7 @@
 package minh.stub;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map.Entry;
-import java.util.Properties;
 
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
@@ -20,13 +18,7 @@ import com.google.common.collect.TreeMultimap;
 public class RecentUserLister {
 
     public static void main(String[] args) throws IOException {
-        Properties prop = new Properties();
-        try (FileInputStream is = new FileInputStream("config.properties")) {
-            prop.load(is);
-        }
-        
-        MediaWikiBot wikiBot = new MediaWikiBot("http://vi.wikipedia.org/w/");
-        wikiBot.login(prop.getProperty("user"), prop.getProperty("pass"));
+        MediaWikiBot wikiBot = Utils.getBot();
         DateTime lastMonth = new DateTime().minusMonths(1);
         Iterable<String> users = new RecentchangeUsers(wikiBot, false, 
                 lastMonth, MediaWiki.NS_MAIN);
