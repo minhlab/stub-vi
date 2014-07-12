@@ -98,7 +98,7 @@ public class StubCategoryKeyAdder {
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
                 int count = 0;
                 Article article;
-                while ((article = inArticles.pollLast(100, TimeUnit.HOURS)) != LAST_ARTICLE) {
+                while ((article = inArticles.pollLast(1, TimeUnit.DAYS)) != LAST_ARTICLE) {
                     count++;
                     String title = article.getTitle();
                     if ("Thể loại:Sơ khai".equals(title)) {
@@ -155,7 +155,8 @@ public class StubCategoryKeyAdder {
         public void run() {
             try {
                 Article article;
-                while ((article = articles.pollLast(100, TimeUnit.HOURS)) != LAST_ARTICLE) {
+                while ((article = articles.pollLast(1, TimeUnit.DAYS)) != LAST_ARTICLE) {
+                    article.setMinorEdit(true);
                     article.save("Thêm khoá sắp xếp bằng công cụ bán tự động");
                     try {
                         saveState(article.getTitle());
