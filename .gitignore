@@ -5,3 +5,7 @@
 /stub.templates
 /unused-stub-templates.lst
 /stub-unused.lst
+/category-tree.dot
+/category-tree.dot~
+/category-tree.png
+/category-tree.svg

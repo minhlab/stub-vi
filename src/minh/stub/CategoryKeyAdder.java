@@ -21,8 +21,9 @@ import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.actions.util.RedirectFilter;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
 
-public class StubCategoryKeyAdder {
+public class CategoryKeyAdder {
     
+    private static final String COMMON_PREFIX = "Lịch sử tự nhiên ";
     public static final String STATE_PATH = "stub-cat-key-adder.state";
     public static final Article LAST_ARTICLE = new Article(null, (String)null);
 
@@ -31,7 +32,7 @@ public class StubCategoryKeyAdder {
         // the trailing space is important to avoid misspelled names 
 //        String savedState = loadState().substring(9);
         Iterable<String> titles = new AllPageTitles(bot, null, 
-                "Sơ khai ", RedirectFilter.nonredirects, MediaWiki.NS_CATEGORY);
+                COMMON_PREFIX, RedirectFilter.nonredirects, MediaWiki.NS_CATEGORY);
 //        titles = Iterables.limit(titles, 10); // for testing
         BlockingDeque<ProofReadRequest> requests = new LinkedBlockingDeque<ProofReadRequest>(100);
         BlockingDeque<Article> outArticles = new LinkedBlockingDeque<Article>(1000);
@@ -77,7 +78,8 @@ public class StubCategoryKeyAdder {
 
         @Override
         public void run() {
-            Pattern regex = Pattern.compile("\\[\\[Thể loại:Sơ khai .+?\\]\\]");
+            Pattern regex = Pattern.compile("\\[\\[Thể loại:" +
+                    Pattern.quote(COMMON_PREFIX) + ".+?\\]\\]");
             for (String title : titles) {
                 Article article = bot.getArticle(title);
                 Matcher matcher = regex.matcher(article.getText());
@@ -85,7 +87,8 @@ public class StubCategoryKeyAdder {
                     String catText = matcher.group();
                     if (!catText.contains("|")) {
                         int len = catText.length();
-                        String key = article.getTitle().substring(17);
+                        String key = article.getTitle().substring(
+                                ("Thể loại:" + COMMON_PREFIX).length());
                         String newCatText = catText.substring(0, len-2) + 
                                 "|" + key + "]]";
                         StringBuffer sb = new StringBuffer();

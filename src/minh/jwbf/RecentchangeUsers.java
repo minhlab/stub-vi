@@ -30,6 +30,7 @@ import net.sourceforge.jwbf.core.actions.util.HttpAction;
 import net.sourceforge.jwbf.mediawiki.ApiRequestBuilder;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki.Version;
+import net.sourceforge.jwbf.mediawiki.actions.queries.RecentchangeTitles;
 import net.sourceforge.jwbf.mediawiki.actions.queries.TitleQuery;
 import net.sourceforge.jwbf.mediawiki.actions.util.MWAction;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
@@ -41,6 +42,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
+ * Modified from {@link RecentchangeTitles} to find out users that contributed
+ * recent changes.
+ * 
  * Gets a list of users recently made changes, ordered by modification
  * timestamp. Parameters: rcfrom (paging timestamp), rcto (flt), rcnamespace
  * (flt), rcminor (flt), rcusertype (dflt=not|bot), rcdirection (dflt=older),
