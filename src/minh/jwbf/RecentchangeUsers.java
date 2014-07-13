@@ -41,11 +41,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- * Gets a list of pages recently changed, ordered by modification timestamp. Parameters: rcfrom (paging timestamp), rcto
- * (flt), rcnamespace (flt), rcminor (flt), rcusertype (dflt=not|bot), rcdirection (dflt=older), rclimit (dflt=10,
- * max=500/5000) F api.php ? action=query & list=recentchanges - List last 10 changes
+ * Gets a list of users recently made changes, ordered by modification
+ * timestamp. Parameters: rcfrom (paging timestamp), rcto (flt), rcnamespace
+ * (flt), rcminor (flt), rcusertype (dflt=not|bot), rcdirection (dflt=older),
+ * rclimit (dflt=10, max=500/5000) F api.php ? action=query & list=recentchanges
+ * - List last 10 changes
  * 
  * @author Thomas Stock
+ * @author Minh Ngoc Le
  */
 @Slf4j
 public class RecentchangeUsers extends TitleQuery<String> {
@@ -64,7 +67,7 @@ public class RecentchangeUsers extends TitleQuery<String> {
    * finished.
    */
   private final Collection<String> userCollection = Lists.newArrayList();
-  private final boolean uniqChanges;
+  private final boolean uniqUsers;
 
   private DateTime endDateTime;
 
@@ -83,7 +86,7 @@ public class RecentchangeUsers extends TitleQuery<String> {
       userCollection.clear();
       parseArticleTitles(s);
 
-      if (uniqChanges) {
+      if (uniqUsers) {
         Set<String> set = Sets.newHashSet();
         set.addAll(userCollection);
         userCollection.clear();
@@ -153,12 +156,12 @@ public class RecentchangeUsers extends TitleQuery<String> {
   /**
    *
    */
-  public RecentchangeUsers(MediaWikiBot bot, boolean uniqChanges, DateTime endDateTime, int... ns) {
+  public RecentchangeUsers(MediaWikiBot bot, boolean uniqUsers, DateTime endDateTime, int... ns) {
     super(bot);
     this.endDateTime = endDateTime;
     namespaces = ns;
     this.bot = bot;
-    this.uniqChanges = uniqChanges;
+    this.uniqUsers = uniqUsers;
 
   }
 
@@ -224,7 +227,7 @@ public class RecentchangeUsers extends TitleQuery<String> {
 
   @Override
   protected Object clone() throws CloneNotSupportedException {
-    return new RecentchangeUsers(bot, uniqChanges, endDateTime, namespaces);
+    return new RecentchangeUsers(bot, uniqUsers, endDateTime, namespaces);
   }
 
   @Override
