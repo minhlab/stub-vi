@@ -3,6 +3,7 @@ package minh.stub;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import minh.jwbf.RecentchangeUsers;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
 

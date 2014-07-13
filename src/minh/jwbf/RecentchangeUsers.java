@@ -16,7 +16,7 @@
  * Contributors:
  *
  */
-package minh.stub;
+package minh.jwbf;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

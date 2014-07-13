@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import minh.jwbf.AllPageTitles;
 import net.sourceforge.jwbf.core.contentRep.Article;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.actions.util.RedirectFilter;

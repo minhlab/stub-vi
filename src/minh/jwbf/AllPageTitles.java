@@ -17,7 +17,7 @@
  * Tobias Knerr
  *
  */
-package minh.stub;
+package minh.jwbf;
 
 import java.util.Collection;
 import java.util.regex.Matcher;
