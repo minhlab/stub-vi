@@ -16,5 +16,6 @@
 	<classpathentry kind="lib" path="lib/lombok-1.12.4.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.5.jar"/>
 	<classpathentry kind="lib" path="lib/joda-time-2.1.jar"/>
+	<classpathentry kind="lib" path="lib/snakeyaml-1.13.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

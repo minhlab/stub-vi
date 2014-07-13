@@ -17,7 +17,6 @@ import com.google.common.io.Files;
 
 import net.sourceforge.jwbf.core.contentRep.Article;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
-import net.sourceforge.jwbf.mediawiki.actions.queries.AllPageTitles;
 import net.sourceforge.jwbf.mediawiki.actions.util.RedirectFilter;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
 
@@ -28,17 +27,20 @@ public class StubCategoryKeyAdder {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         MediaWikiBot bot = Utils.getBot();
-        Iterable<String> titles = new AllPageTitles(bot, loadState(), "Sơ khai",
-                RedirectFilter.nonredirects, MediaWiki.NS_CATEGORY);
+        // the trailing space is important to avoid misspelled names 
+//        String savedState = loadState().substring(9);
+        Iterable<String> titles = new AllPageTitles(bot, null, 
+                "Sơ khai ", RedirectFilter.nonredirects, MediaWiki.NS_CATEGORY);
 //        titles = Iterables.limit(titles, 10); // for testing
-        BlockingDeque<Article> inArticles = new LinkedBlockingDeque<Article>(10);
-        BlockingDeque<Article> outArticles = new LinkedBlockingDeque<Article>(10);
+        BlockingDeque<ProofReadRequest> requests = new LinkedBlockingDeque<ProofReadRequest>(100);
+        BlockingDeque<Article> outArticles = new LinkedBlockingDeque<Article>(1000);
         ExecutorService pool = Executors.newFixedThreadPool(3);
-        pool.execute(new ArticleLoader(titles, inArticles, bot));
-        pool.execute(new ArticleEditor(inArticles, outArticles));
+        pool.execute(new ArticleLoader(titles, requests, outArticles, bot));
+        pool.execute(new ArticleProofReadHelper(requests, outArticles));
         pool.execute(new ArticleSaver(outArticles));
         pool.shutdown();
         pool.awaitTermination(100, TimeUnit.HOURS);
+        System.out.println("Finished!!!");
     }
 
     public static String loadState() throws IOException {
@@ -58,86 +60,137 @@ public class StubCategoryKeyAdder {
     private static class ArticleLoader implements Runnable {
 
         private Iterable<String> titles;
-        private BlockingDeque<Article> articles;
+        private BlockingDeque<ProofReadRequest> requests;
+        private BlockingDeque<Article> outArticles;
         private MediaWikiBot bot;
         
         public ArticleLoader(Iterable<String> titles,
-                BlockingDeque<Article> articles, MediaWikiBot bot) {
+                BlockingDeque<ProofReadRequest> requests, 
+                BlockingDeque<Article> outArticles, MediaWikiBot bot) {
             super();
             this.titles = titles;
-            this.articles = articles;
+            this.requests = requests;
+            this.outArticles = outArticles;
             this.bot = bot;
         }
 
         @Override
         public void run() {
+            Pattern regex = Pattern.compile("\\[\\[Thể loại:Sơ khai .+?\\]\\]");
             for (String title : titles) {
-                articles.offerFirst(bot.getArticle(title));
+                Article article = bot.getArticle(title);
+                Matcher matcher = regex.matcher(article.getText());
+                if (matcher.find()) {
+                    String catText = matcher.group();
+                    if (!catText.contains("|")) {
+                        int len = catText.length();
+                        String key = article.getTitle().substring(17);
+                        String newCatText = catText.substring(0, len-2) + 
+                                "|" + key + "]]";
+                        StringBuffer sb = new StringBuffer();
+                        matcher.appendReplacement(sb, newCatText);
+                        matcher.appendTail(sb);
+                        String newText = sb.toString();
+                        try {
+                            if (key.split(" ").length <= 1) {
+                                article.setText(newText);
+                                outArticles.offerFirst(article, 1,
+                                        TimeUnit.DAYS);
+                                System.out.format("Skipped proof read: %s.\n",
+                                        article.getTitle());
+                            } else {
+                                requests.offerFirst(new ProofReadRequest(
+                                        article, newText), 1, TimeUnit.DAYS);
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } // end if matcher.find
             }
-            articles.offer(LAST_ARTICLE);
+            try {
+                requests.offer(new ProofReadRequest(LAST_ARTICLE, null), 
+                        1, TimeUnit.DAYS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
     
     
-    private static class ArticleEditor implements Runnable {
+    private static class ArticleProofReadHelper implements Runnable {
 
-        private BlockingDeque<Article> inArticles;
+        private BlockingDeque<ProofReadRequest> requests;
         private BlockingDeque<Article> outArticles;
+        private int count = 0;
 
-        public ArticleEditor(BlockingDeque<Article> inArticles,
+        public ArticleProofReadHelper(BlockingDeque<ProofReadRequest> requests,
                 BlockingDeque<Article> outArticles) {
             super();
-            this.inArticles = inArticles;
+            this.requests = requests;
             this.outArticles = outArticles;
         }
 
         @Override
         public void run() {
-            try {
-                Pattern regex = Pattern.compile("\\[\\[Thể loại:Sơ khai .+?\\]\\]");
-                BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
-                int count = 0;
-                Article article;
-                while ((article = inArticles.pollLast(1, TimeUnit.DAYS)) != LAST_ARTICLE) {
-                    count++;
-                    String title = article.getTitle();
-                    if ("Thể loại:Sơ khai".equals(title)) {
-                        continue;
+            BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
+            ProofReadRequest request;
+            while (true) {
+                count++;
+                try {
+                    request = requests.pollFirst(1, TimeUnit.DAYS);
+                    if (request.getArticle() == LAST_ARTICLE) {
+                        break;
                     }
-                    Matcher matcher = regex.matcher(article.getText());
-                    if (matcher.find()) {
-                        String catText = matcher.group();
-                        if (!catText.contains("|")) {
-                            int len = catText.length();
-                            String newCatText = catText.substring(0, len-2) + 
-                                    "|" + title.substring(17) + "]]";
-                            StringBuffer sb = new StringBuffer();
-                            matcher.appendReplacement(sb, newCatText);
-                            matcher.appendTail(sb);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                    continue;
+                }
 
-                            System.out.format("\nArticle #%d: %s\n", count, title);
-                            System.out.println(article.getText());
-                            System.out.println(">>>");
-                            System.out.println(sb);
-                            System.out.print("Save ([y]/n)? ");
-                            String answer;
-                            try {
-                                answer = inReader.readLine().trim();
-                                if (answer.isEmpty()) answer = "y";
-                                if ("y".equals(answer)) {
-                                    article.setText(sb.toString());
-                                    outArticles.offerFirst(article);
-                                }
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    } // end if
-                } // end while
-                outArticles.offer(LAST_ARTICLE);
+                String newText = request.getNewText();
+                System.out.format("\nArticle #%d: %s\n", count, request.getArticle().getTitle());
+                System.out.println(request.getArticle().getText());
+                System.out.println(">>>");
+                System.out.println(newText);
+                System.out.print("OK ([y]/n)? ");
+                String answer;
+                try {
+                    answer = inReader.readLine().trim();
+                    if (answer.isEmpty()) answer = "y";
+                    if (!"y".equals(answer)) {
+                        File stubFile = File.createTempFile("stub-", ".wikitext");
+                        Files.write(newText, stubFile, Charsets.UTF_8);
+                        edit(stubFile);
+                        newText = Files.toString(stubFile, Charsets.UTF_8);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    request.getArticle().setText(newText);
+                    outArticles.offerFirst(request.getArticle(), 1, TimeUnit.DAYS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } // end while
+            try {
+                outArticles.offerFirst(LAST_ARTICLE, 1, TimeUnit.DAYS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            } 
+            }
+        }
+
+        public static void edit(File stubFile) throws IOException {
+            Process vim = new ProcessBuilder("leafpad", 
+                    stubFile.getAbsolutePath()).start();
+            try {
+                int code = vim.waitFor();
+                if (code != 0) {
+                    System.out.println("Error code: " + code);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
     
@@ -153,22 +206,44 @@ public class StubCategoryKeyAdder {
 
         @Override
         public void run() {
-            try {
-                Article article;
-                while ((article = articles.pollLast(1, TimeUnit.DAYS)) != LAST_ARTICLE) {
-                    article.setMinorEdit(true);
-                    article.save("Thêm khoá sắp xếp bằng công cụ bán tự động");
-                    try {
-                        saveState(article.getTitle());
-                    } catch (IOException e) {
-                        e.printStackTrace();
+            Article article;
+            while (true) {
+                try {
+                    if ((article = articles.pollLast(1, TimeUnit.DAYS)) == LAST_ARTICLE) {
+                        break;
                     }
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                    continue;
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                
+                article.setMinorEdit(true);
+                article.save("Thêm khoá sắp xếp dùng công cụ bán tự động");
+                try {
+                    saveState(article.getTitle());
+                    System.out.format("Saved %s, pending: %d.\n", 
+                            article.getTitle(), articles.size());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
-        
+    }
+    
+    private static class ProofReadRequest {
+        Article article;
+        String newText;
+        public ProofReadRequest(Article article, String newText) {
+            super();
+            this.article = article;
+            this.newText = newText;
+        }
+        public Article getArticle() {
+            return article;
+        }
+        public String getNewText() {
+            return newText;
+        }
     }
 
 }
