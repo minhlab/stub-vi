@@ -1,9 +1,10 @@
-package minh.stub;
+package minh.misc;
 
 import java.io.IOException;
 import java.util.Map.Entry;
 
 import minh.jwbf.RecentchangeUsers;
+import minh.jwbf.Utils;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
 
@@ -41,7 +42,8 @@ public class RecentUserLister {
         Iterable<Entry<Integer, String>> mostActiveUsers = 
                 Iterables.limit(countUsers.entries(), 200);
         for (Entry<Integer, String> entry : mostActiveUsers) {
-            System.out.println(entry.getValue() + ":" + entry.getKey());
+//            System.out.println(entry.getValue() + ":" + entry.getKey());
+            System.out.println(entry.getValue());
         }
     }
     

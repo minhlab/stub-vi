@@ -10,7 +10,7 @@ public class StubClassifier {
      * @param stub
      * @return stub template name
      */
-    public String classify(SimpleArticle stub) {
+    public String classify(SimpleArticle article) {
         
         return null;
     }

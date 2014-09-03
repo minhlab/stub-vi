@@ -1,4 +1,4 @@
-package minh.stub;
+package minh.misc;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,6 +16,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import minh.jwbf.AllPageTitles;
+import minh.jwbf.Utils;
 import net.sourceforge.jwbf.core.contentRep.Article;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.actions.util.RedirectFilter;

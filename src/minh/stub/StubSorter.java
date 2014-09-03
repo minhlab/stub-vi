@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import minh.jwbf.Utils;
 import net.sourceforge.jwbf.core.actions.util.ActionException;
 import net.sourceforge.jwbf.core.contentRep.SimpleArticle;
 import net.sourceforge.jwbf.mediawiki.actions.queries.CategoryMembersSimple;
@@ -73,7 +74,7 @@ public class StubSorter {
     }
 
     public static void edit(File stubFile) throws IOException {
-        Process vim = new ProcessBuilder("gedit", stubFile.getAbsolutePath()).start();
+        Process vim = new ProcessBuilder("leafpad", stubFile.getAbsolutePath()).start();
         try {
             int code = vim.waitFor();
             if (code != 0) {

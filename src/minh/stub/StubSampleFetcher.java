@@ -1,6 +1,7 @@
 package minh.stub;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -9,6 +10,7 @@ import java.io.Writer;
 import java.util.List;
 import java.util.Map;
 
+import minh.jwbf.Utils;
 import net.sourceforge.jwbf.core.contentRep.SimpleArticle;
 import net.sourceforge.jwbf.mediawiki.actions.MediaWiki;
 import net.sourceforge.jwbf.mediawiki.actions.queries.AllPageTitles;
@@ -43,6 +45,12 @@ public class StubSampleFetcher {
                 templateMap.size(), articleMap.size());
     }
 
+    /**
+     * Fetch stub template titles, may contain duplication.
+     * 
+     * @param bot
+     * @return
+     */
     public static Iterable<String> getTemplateTitles(MediaWikiBot bot) {
         // the trailing space is important to avoid misspelled names 
         Iterable<String> titlesByName = new AllPageTitles(bot, null, "Sơ khai ",
@@ -64,14 +72,7 @@ public class StubSampleFetcher {
     public static Map<String, List<String>> fetchAndSaveTemplates(MediaWikiBot bot,
             Iterable<String> templates) throws IOException {
         if (new File(TEMPLATES_PATH).exists()) {
-            try (Reader reader = new FileReader(TEMPLATES_PATH)) {
-                Yaml yaml = new Yaml();
-                System.out.format("Found %s, reading... ", TEMPLATES_PATH);
-                Map<String, List<String>> templateMap = 
-                        (Map<String, List<String>>) yaml.load(reader);
-                System.out.println("Done.");
-                return templateMap;
-            }
+            return (Map<String, List<String>>) readYAML(TEMPLATES_PATH);
         }
         
         int count = 0;
@@ -82,7 +83,7 @@ public class StubSampleFetcher {
             }
             Iterable<String> backlinkTitles = new BacklinkTitles(bot, template,
                     RedirectFilter.nonredirects, MediaWiki.NS_MAIN);
-            Iterable<String> allTitles;
+            Iterable<String> articles;
             if (template.startsWith("Bản mẫu:Sơ khai ")) {
                 String mainArticleTitle = template.substring(16);
                 String category = "Thể loại:" + mainArticleTitle;
@@ -92,28 +93,24 @@ public class StubSampleFetcher {
                         category, RedirectFilter.nonredirects, MediaWiki.NS_MAIN);
                 // try desperately to limit the number of requests to server
                 // while still preventing any duplication
-                allTitles = Sets.newLinkedHashSet(Iterables.limit(
+                articles = Sets.newLinkedHashSet(Iterables.limit(
                         Iterables.concat(backlinkTitles,
                                 ImmutableList.of(mainArticleTitle),
                                 catMemberTitles, catBacklinkTitles),
                         ARTICLE_PER_TEMPLATE * 2));
             } else {
-                allTitles = backlinkTitles;
+                articles = backlinkTitles;
             }
             // actually limit the number of articles
-            allTitles = Iterables.limit(allTitles, ARTICLE_PER_TEMPLATE);
-            templateMap.put(template, Lists.newArrayList(allTitles));
+            articles = Iterables.limit(articles, ARTICLE_PER_TEMPLATE);
+            templateMap.put(template, Lists.newArrayList(articles));
             count++;
             if (count % 1000 == 0) {
                 System.out.format("%d...\n", count);
             }
         }
-        try (Writer writer = new FileWriter(TEMPLATES_PATH)) {
-            Yaml yaml = new Yaml();
-            System.out.format("Writing to %s... ", TEMPLATES_PATH);
-            yaml.dump(templateMap, writer);
-            System.out.println("Done.");
-        }
+        
+        writeYAML(templateMap, TEMPLATES_PATH);
         return templateMap;
     }
 
@@ -121,14 +118,7 @@ public class StubSampleFetcher {
     private static Map<String, String> fetchAndSaveArticles(MediaWikiBot bot,
             Map<String, List<String>> titleMap) throws IOException {
         if (new File(ARTICLES_PATH).exists()) {
-            try (Reader reader = new FileReader(ARTICLES_PATH)) {
-                Yaml yaml = new Yaml();
-                System.out.format("Found articles at %s, reading... ", ARTICLES_PATH);
-                Map<String, String> articleMap = 
-                        (Map<String, String>) yaml.load(reader);
-                System.out.println("Done.");
-                return articleMap; 
-            }
+            return (Map<String, String>) readYAML(ARTICLES_PATH); 
         }
         
         int count = 0;
@@ -146,13 +136,31 @@ public class StubSampleFetcher {
                 }
             }
         }
-        try (Writer writer = new FileWriter(ARTICLES_PATH)) {
+        
+        writeYAML(articleMap, ARTICLES_PATH);
+        return articleMap;
+    }
+
+    public static Object readYAML(String path) throws IOException,
+            FileNotFoundException {
+        Object articleMap;
+        try (Reader reader = new FileReader(path)) {
             Yaml yaml = new Yaml();
-            System.out.format("Writing to %s... ", ARTICLES_PATH);
-            yaml.dump(articleMap, writer);
+            System.out.format("Found data at %s, reading... ", path);
+            articleMap = yaml.load(reader);
             System.out.println("Done.");
         }
         return articleMap;
+    }
+
+    public static void writeYAML(Map<?, ?> map, String path)
+            throws IOException {
+        try (Writer writer = new FileWriter(path)) {
+            Yaml yaml = new Yaml();
+            System.out.format("Writing to %s... ", path);
+            yaml.dump(map, writer);
+            System.out.println("Done.");
+        }
     }
 
 }
